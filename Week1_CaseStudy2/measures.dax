@@ -1,0 +1,57 @@
+Total Sales Revenue =
+SUM('retail_analytics factsales'[SalesAmount])
+
+Total Quantity Sold =
+SUM('retail_analytics factsales'[Quantity])
+
+Total Transactions =
+DISTINCTCOUNT('retail_analytics factsales'[SaleID])
+
+Average Transaction Value =
+DIVIDE(
+    [Total Sales Revenue],
+    [Total Transactions]
+)
+
+DateTable =
+ADDCOLUMNS(
+    CALENDAR(
+        DATE(2024, 6, 1),
+        DATE(2024, 11, 28)
+    ),
+    "Year", YEAR([Date]),
+    "Month Number", MONTH([Date]),
+    "Month", FORMAT([Date], "MMM"),
+    "Year Month", FORMAT([Date], "YYYY-MM")
+)
+
+Sale Date =
+DATEVALUE('retail_analytics factsales'[Timestamp])
+
+Sales Growth Rate =
+DIVIDE(
+    [Total Sales Revenue] - [Previous Month Sales],
+    [Previous Month Sales]
+)
+
+Previous Month Sales =
+CALCULATE(
+    [Total Sales Revenue],
+    DATEADD(DateTable[Date], -1, MONTH)
+)
+
+Total Customers =
+DISTINCTCOUNT('retail_analytics factsales'[CustomerID])
+
+Customer Segment =
+VAR CustomerRevenue =
+    CALCULATE(
+        SUM('retail_analytics factsales'[SalesAmount])
+    )
+RETURN
+    SWITCH(
+        TRUE(),
+        CustomerRevenue >= 20000, "High Value",
+        CustomerRevenue >= 8000, "Medium Value",
+        "Low Value"
+    )
