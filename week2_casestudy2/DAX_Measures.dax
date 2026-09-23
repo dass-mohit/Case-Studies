@@ -1,0 +1,53 @@
+Total Employees = COUNTROWS(DimEmployee)
+
+Average Tenure = AVERAGE(DimEmployee[Job_Tenure])
+
+Attrition Count =
+CALCULATE(
+    COUNTROWS(DimAttrition),
+    DimAttrition[Attrition] = "True"
+)
+
+Retention Count =
+CALCULATE(
+    COUNTROWS(DimAttrition),
+    DimAttrition[Attrition] = "False"
+)
+
+Observed Attrition Rate =
+DIVIDE([Attrition Count], COUNTROWS(DimAttrition))
+
+Observed Retention Rate =
+DIVIDE([Retention Count], COUNTROWS(DimAttrition))
+
+Average Exit Interview Score =
+AVERAGE(DimAttrition[Exit_Interview_Score])
+
+Average Performance Rating =
+AVERAGE(FactPerformance[Performance_Rating])
+
+Average Satisfaction =
+AVERAGE(FactPerformance[Overall_Satisfaction])
+
+Average Training Hours =
+AVERAGE(FactPerformance[Training_Hours])
+
+
+Tenure_Category_Sort =
+SWITCH(
+    TRUE(),
+    DimEmployee[Job_Tenure] <= 5, 1,
+    DimEmployee[Job_Tenure] <= 10, 2,
+    DimEmployee[Job_Tenure] <= 15, 3,
+    4
+)
+
+
+Satisfaction_Band =
+SWITCH(
+    TRUE(),
+    FactPerformance[Overall_Satisfaction] < 2, "1–<2",
+    FactPerformance[Overall_Satisfaction] < 3, "2–<3",
+    FactPerformance[Overall_Satisfaction] < 4, "3–<4",
+    "4–5"
+)
