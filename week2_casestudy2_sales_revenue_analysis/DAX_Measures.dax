@@ -1,0 +1,32 @@
+-- Core KPI measures
+Total Revenue =
+SUM('sales_dwh fact_sales'[Total_Amount])
+
+Total Transactions =
+COUNTROWS('sales_dwh fact_sales')
+
+Total Quantity =
+SUM('sales_dwh fact_sales'[Quantity])
+
+Average Transaction Value =
+DIVIDE([Total Revenue], [Total Transactions])
+
+Customer Revenue =
+SUM('sales_dwh fact_sales'[Total_Amount])
+
+Customer Count =
+DISTINCTCOUNT('sales_dwh dim_customer'[Customer_ID])
+
+-- Customer and CLV analysis
+Total CLV =
+SUM('stg_customer_clv'[CLV])
+
+Average CLV =
+AVERAGE('stg_customer_clv'[CLV])
+
+-- Customer Display is a calculated column used to keep duplicate names distinct.
+Customer Display =
+'sales_dwh dim_customer'[Name]
+    & " ("
+    & 'sales_dwh dim_customer'[Customer_ID]
+    & ")"
