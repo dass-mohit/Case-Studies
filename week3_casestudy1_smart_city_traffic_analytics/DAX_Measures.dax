@@ -1,0 +1,21 @@
+-- Smart City Traffic & Accident Analytics
+-- Power BI DAX measures
+
+-- Traffic Sensor Measures
+
+Total Traffic Records =
+COUNTROWS('smart_city_dwh fact_traffic_sensor')
+
+Average Traffic Speed =
+AVERAGE('smart_city_dwh fact_traffic_sensor'[Average_Speed])
+
+Average Congestion Index =
+AVERAGE('smart_city_dwh fact_traffic_sensor'[Congestion_Index])
+
+Average Vehicle Count =
+AVERAGE('smart_city_dwh fact_traffic_sensor'[Vehicle_Count])
+
+-- Accident Measures
+
+Total Accidents =
+COUNTROWS('smart_city_dwh fact_accident')
