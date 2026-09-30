@@ -1,0 +1,126 @@
+-- Supply Chain & Inventory Management
+-- Week 3 Case Study 2
+-- Power BI DAX Measures and Calculated Columns
+
+-- ============================================================
+-- FACT SALES MEASURES
+-- ============================================================
+
+Total Revenue =
+SUM(FactSales[Revenue])
+
+Total Quantity Sold =
+SUM(FactSales[Quantity_Sold])
+
+Total Transactions =
+DISTINCTCOUNT(FactSales[Sale_ID])
+
+-- ============================================================
+-- INVENTORY MEASURES
+-- ============================================================
+
+Inventory Below Reorder =
+CALCULATE(
+    COUNTROWS(FactInventory),
+    FactInventory[Stock_Level] < FactInventory[Reorder_Level]
+)
+
+Latest Stock Level =
+VAR LatestDate =
+    MAX(FactInventory[Date_Key])
+RETURN
+    CALCULATE(
+        MAX(FactInventory[Stock_Level]),
+        FactInventory[Date_Key] = LatestDate
+    )
+
+Latest Reorder Level =
+VAR LatestDate =
+    MAX(FactInventory[Date_Key])
+RETURN
+    CALCULATE(
+        MAX(FactInventory[Reorder_Level]),
+        FactInventory[Date_Key] = LatestDate
+    )
+
+Latest Inventory Status =
+IF(
+    [Latest Stock Level] < [Latest Reorder Level],
+    "Below Reorder",
+    "At/Above Reorder"
+)
+
+-- ============================================================
+-- PURCHASE ORDER MEASURES
+-- ============================================================
+
+Total Purchase Quantity =
+SUM(FactPurchaseOrders[Quantity])
+
+-- ============================================================
+-- REORDER POINT
+-- ============================================================
+
+Total Reorder Point =
+SUM(reorder_point[Reorder_Point])
+
+Average Reorder Point =
+AVERAGE(reorder_point[Reorder_Point])
+
+-- ============================================================
+-- FORECAST
+-- ============================================================
+
+Total Forecast Quantity =
+SUM(final_forecast[Forecast_Quantity])
+
+Forecast Quantity =
+CALCULATE(
+    SUM(final_forecast[Forecast_Quantity]),
+    TREATAS(
+        VALUES(DimProduct[Product_ID]),
+        final_forecast[Product_ID]
+    )
+)
+
+-- ============================================================
+-- SUPPLIER
+-- ============================================================
+
+Average Supplier Lead Time =
+AVERAGE(DimSupplier[Lead_Time (days)])
+
+-- ============================================================
+-- FORECAST VS LATEST COMPLETE MONTH
+-- Latest complete month in the project is August 2037.
+-- ============================================================
+
+Latest Complete Month Demand =
+CALCULATE(
+    [Total Quantity Sold],
+    DimDate[Year] = 2037,
+    DimDate[Month] = 8
+)
+
+-- ============================================================
+-- CALCULATED COLUMNS
+-- ============================================================
+
+-- FactInventory calculated column
+
+Stock Status =
+IF(
+    FactInventory[Stock_Level] < FactInventory[Reorder_Level],
+    "Below Reorder",
+    "At/Above Reorder"
+)
+
+-- DimDate calculated columns
+
+Month Year =
+FORMAT(DimDate[Full_Date], "MMM yyyy")
+
+Year Month Sort =
+DimDate[Year] * 100 + DimDate[Month]
+
+-- Sort DimDate[Month Year] by DimDate[Year Month Sort].
