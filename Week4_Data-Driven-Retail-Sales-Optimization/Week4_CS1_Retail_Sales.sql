@@ -1,0 +1,432 @@
+CREATE DATABASE IF NOT EXISTS adventure_works_dw;
+USE adventure_works_dw;
+
+CREATE TABLE DimCustomer (
+    CustomerKey INT NOT NULL,
+    GeographyKey INT,
+    CustomerName VARCHAR(100),
+    BirthDate DATE,
+    MaritalStatus CHAR(1),
+    Gender CHAR(1),
+    EmailAddress VARCHAR(150),
+    YearlyIncome DECIMAL(12,2),
+    Education VARCHAR(50),
+    Occupation VARCHAR(50),
+    HouseOwnerFlag TINYINT,
+    Address VARCHAR(255),
+    FirstPurchaseDate DATE,
+    PRIMARY KEY (CustomerKey)
+);
+
+CREATE TABLE DimEmployee (
+    EmployeeKey INT NOT NULL,
+    ParentEmployeeKey INT,
+    SalesTerritoryKey INT,
+    EmployeeName VARCHAR(100),
+    Title VARCHAR(100),
+    EmailAddress VARCHAR(150),
+    DepartmentName VARCHAR(100),
+    HireDate DATE,
+    BirthDate DATE,
+    PRIMARY KEY (EmployeeKey)
+);
+
+CREATE TABLE DimGeography (
+    GeographyKey INT NOT NULL,
+    City VARCHAR(100),
+    State VARCHAR(100),
+    Country VARCHAR(100),
+    PostalCode VARCHAR(20),
+    SalesTerritoryKey INT,
+    PRIMARY KEY (GeographyKey)
+);
+
+CREATE TABLE DimProduct (
+    ProductKey INT NOT NULL,
+    ProductSubcategoryKey INT,
+    Product VARCHAR(150),
+    Color VARCHAR(50),
+    Model VARCHAR(100),
+    Subcategory VARCHAR(100),
+    Category VARCHAR(100),
+    PRIMARY KEY (ProductKey)
+);
+
+CREATE TABLE DimReseller (
+    ResellerKey INT NOT NULL,
+    GeographyKey INT,
+    BusinessType VARCHAR(100),
+    ResellerName VARCHAR(150),
+    PRIMARY KEY (ResellerKey)
+);
+
+CREATE TABLE DimSalesTerritory (
+    SalesTerritoryKey INT NOT NULL,
+    SalesTerritoryRegion VARCHAR(100),
+    SalesTerritoryCountry VARCHAR(100),
+    SalesTerritoryGroup VARCHAR(100),
+    PRIMARY KEY (SalesTerritoryKey)
+);
+
+CREATE TABLE FactInternetSales (
+    ProductKey INT NOT NULL,
+    CustomerKey INT NOT NULL,
+    SalesTerritoryKey INT NOT NULL,
+    SalesOrderNumber VARCHAR(20) NOT NULL,
+    SalesOrderLineNumber INT NOT NULL,
+    DiscountAmount DECIMAL(12,2),
+    TotalProductCost DECIMAL(12,2),
+    SalesAmount DECIMAL(12,2),
+    Freight DECIMAL(12,2),
+    CarrierTrackingNumber VARCHAR(50),
+    OrderDate DATETIME,
+    DueDate DATETIME,
+    ShipDate DATETIME
+);
+
+CREATE TABLE FactResellerSales (
+    ProductKey INT NOT NULL,
+    ResellerKey INT NOT NULL,
+    EmployeeKey INT NOT NULL,
+    SalesTerritoryKey INT NOT NULL,
+    SalesOrderNumber VARCHAR(20) NOT NULL,
+    SalesOrderLineNumber INT NOT NULL,
+    DiscountAmount DECIMAL(12,2),
+    TotalProductCost DECIMAL(12,2),
+    SalesAmount DECIMAL(12,2),
+    Freight DECIMAL(12,2),
+    CarrierTrackingNumber VARCHAR(50),
+    OrderDate DATETIME,
+    DueDate DATETIME,
+    ShipDate DATETIME
+);
+
+ALTER TABLE FactInternetSales
+ADD CONSTRAINT fk_fis_product
+FOREIGN KEY (ProductKey) REFERENCES DimProduct(ProductKey);
+
+ALTER TABLE FactInternetSales
+ADD CONSTRAINT fk_fis_customer
+FOREIGN KEY (CustomerKey) REFERENCES DimCustomer(CustomerKey);
+
+ALTER TABLE FactInternetSales
+ADD CONSTRAINT fk_fis_territory
+FOREIGN KEY (SalesTerritoryKey) REFERENCES DimSalesTerritory(SalesTerritoryKey);
+
+ALTER TABLE FactResellerSales
+ADD CONSTRAINT fk_frs_product
+FOREIGN KEY (ProductKey) REFERENCES DimProduct(ProductKey);
+
+ALTER TABLE FactResellerSales
+ADD CONSTRAINT fk_frs_reseller
+FOREIGN KEY (ResellerKey) REFERENCES DimReseller(ResellerKey);
+
+ALTER TABLE FactResellerSales
+ADD CONSTRAINT fk_frs_employee
+FOREIGN KEY (EmployeeKey) REFERENCES DimEmployee(EmployeeKey);
+
+ALTER TABLE FactResellerSales
+ADD CONSTRAINT fk_frs_territory
+FOREIGN KEY (SalesTerritoryKey) REFERENCES DimSalesTerritory(SalesTerritoryKey);
+
+ALTER TABLE DimCustomer
+ADD CONSTRAINT fk_customer_geography
+FOREIGN KEY (GeographyKey) REFERENCES DimGeography(GeographyKey);
+
+ALTER TABLE DimReseller
+ADD CONSTRAINT fk_reseller_geography
+FOREIGN KEY (GeographyKey) REFERENCES DimGeography(GeographyKey);
+
+ALTER TABLE DimGeography
+ADD CONSTRAINT fk_geography_territory
+FOREIGN KEY (SalesTerritoryKey) REFERENCES DimSalesTerritory(SalesTerritoryKey);
+
+SELECT COUNT(*) AS Row_Count FROM DimCustomer;
+SELECT COUNT(*) AS Row_Count FROM DimEmployee;
+SELECT COUNT(*) AS Row_Count FROM DimGeography;
+SELECT COUNT(*) AS Row_Count FROM DimProduct;
+SELECT COUNT(*) AS Row_Count FROM DimReseller;
+SELECT COUNT(*) AS Row_Count FROM DimSalesTerritory;
+SELECT COUNT(*) AS Row_Count FROM FactInternetSales;
+SELECT COUNT(*) AS Row_Count FROM FactResellerSales;
+
+SELECT
+    TABLE_NAME,
+    CONSTRAINT_NAME,
+    COLUMN_NAME,
+    REFERENCED_TABLE_NAME,
+    REFERENCED_COLUMN_NAME
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+WHERE TABLE_SCHEMA = DATABASE()
+  AND REFERENCED_TABLE_NAME IS NOT NULL
+ORDER BY TABLE_NAME, CONSTRAINT_NAME;
+
+SELECT COUNT(*) AS Invalid_Customer_Refs
+FROM FactInternetSales f
+LEFT JOIN DimCustomer c ON f.CustomerKey = c.CustomerKey
+WHERE c.CustomerKey IS NULL;
+
+SELECT COUNT(*) AS Invalid_Product_Refs_Internet
+FROM FactInternetSales f
+LEFT JOIN DimProduct p ON f.ProductKey = p.ProductKey
+WHERE p.ProductKey IS NULL;
+
+SELECT COUNT(*) AS Invalid_Product_Refs_Reseller
+FROM FactResellerSales f
+LEFT JOIN DimProduct p ON f.ProductKey = p.ProductKey
+WHERE p.ProductKey IS NULL;
+
+SELECT COUNT(*) AS Invalid_Reseller_Refs
+FROM FactResellerSales f
+LEFT JOIN DimReseller r ON f.ResellerKey = r.ResellerKey
+WHERE r.ResellerKey IS NULL;
+
+SELECT COUNT(*) AS Invalid_Employee_Refs
+FROM FactResellerSales f
+LEFT JOIN DimEmployee e ON f.EmployeeKey = e.EmployeeKey
+WHERE e.EmployeeKey IS NULL;
+
+SELECT COUNT(*) AS Invalid_Territory_Refs_Internet
+FROM FactInternetSales f
+LEFT JOIN DimSalesTerritory t ON f.SalesTerritoryKey = t.SalesTerritoryKey
+WHERE t.SalesTerritoryKey IS NULL;
+
+SELECT COUNT(*) AS Invalid_Territory_Refs_Reseller
+FROM FactResellerSales f
+LEFT JOIN DimSalesTerritory t ON f.SalesTerritoryKey = t.SalesTerritoryKey
+WHERE t.SalesTerritoryKey IS NULL;
+
+SELECT
+    'Internet Sales' AS Sales_Channel,
+    COUNT(*) AS Transactions,
+    SUM(SalesAmount) AS Total_Sales,
+    SUM(SalesAmount) / COUNT(DISTINCT SalesOrderNumber) AS AOV
+FROM FactInternetSales
+UNION ALL
+SELECT
+    'Reseller Sales' AS Sales_Channel,
+    COUNT(*) AS Transactions,
+    SUM(SalesAmount) AS Total_Sales,
+    SUM(SalesAmount) / COUNT(DISTINCT SalesOrderNumber) AS AOV
+FROM FactResellerSales;
+
+WITH TerritorySales AS (
+    SELECT
+        SalesTerritoryKey,
+        SalesOrderNumber,
+        SalesAmount
+    FROM FactInternetSales
+    UNION ALL
+    SELECT
+        SalesTerritoryKey,
+        SalesOrderNumber,
+        SalesAmount
+    FROM FactResellerSales
+)
+SELECT
+    t.SalesTerritoryRegion,
+    SUM(ts.SalesAmount) AS Total_Sales,
+    SUM(ts.SalesAmount) / COUNT(DISTINCT ts.SalesOrderNumber) AS AOV
+FROM TerritorySales ts
+JOIN DimSalesTerritory t
+    ON ts.SalesTerritoryKey = t.SalesTerritoryKey
+GROUP BY t.SalesTerritoryRegion
+ORDER BY Total_Sales DESC;
+
+WITH TerritorySales AS (
+    SELECT
+        SalesTerritoryKey,
+        SalesOrderNumber,
+        SalesAmount
+    FROM FactInternetSales
+    UNION ALL
+    SELECT
+        SalesTerritoryKey,
+        SalesOrderNumber,
+        SalesAmount
+    FROM FactResellerSales
+),
+TerritoryMetrics AS (
+    SELECT
+        t.SalesTerritoryRegion,
+        SUM(ts.SalesAmount) AS Total_Sales,
+        SUM(ts.SalesAmount) / COUNT(DISTINCT ts.SalesOrderNumber) AS AOV
+    FROM TerritorySales ts
+    JOIN DimSalesTerritory t
+        ON ts.SalesTerritoryKey = t.SalesTerritoryKey
+    GROUP BY t.SalesTerritoryRegion
+)
+SELECT
+    AVG(Total_Sales) AS Avg_Territory_Sales,
+    AVG(AOV) AS Avg_Territory_AOV
+FROM TerritoryMetrics;
+
+WITH TerritorySales AS (
+    SELECT SalesTerritoryKey, SalesOrderNumber, SalesAmount
+    FROM FactInternetSales
+    UNION ALL
+    SELECT SalesTerritoryKey, SalesOrderNumber, SalesAmount
+    FROM FactResellerSales
+),
+TerritoryMetrics AS (
+    SELECT
+        t.SalesTerritoryRegion,
+        SUM(ts.SalesAmount) AS Total_Sales,
+        SUM(ts.SalesAmount) / COUNT(DISTINCT ts.SalesOrderNumber) AS AOV
+    FROM TerritorySales ts
+    JOIN DimSalesTerritory t
+        ON ts.SalesTerritoryKey = t.SalesTerritoryKey
+    GROUP BY t.SalesTerritoryRegion
+),
+Benchmarks AS (
+    SELECT AVG(Total_Sales) AS Avg_Sales, AVG(AOV) AS Avg_AOV
+    FROM TerritoryMetrics
+)
+SELECT
+    tm.SalesTerritoryRegion,
+    tm.Total_Sales,
+    tm.AOV,
+    CASE
+        WHEN tm.Total_Sales < b.Avg_Sales AND tm.AOV < b.Avg_AOV THEN 'Underperforming'
+        WHEN tm.Total_Sales >= b.Avg_Sales AND tm.AOV >= b.Avg_AOV THEN 'Strong'
+        ELSE 'Mixed'
+    END AS Performance
+FROM TerritoryMetrics tm
+CROSS JOIN Benchmarks b
+ORDER BY tm.Total_Sales DESC;
+
+WITH CustomerSales AS (
+    SELECT
+        CustomerKey,
+        SUM(SalesAmount) AS Customer_Spending
+    FROM FactInternetSales
+    GROUP BY CustomerKey
+)
+SELECT AVG(Customer_Spending) AS Avg_Customer_Spending
+FROM CustomerSales;
+
+WITH CustomerSales AS (
+    SELECT
+        CustomerKey,
+        SUM(SalesAmount) AS Customer_Spending
+    FROM FactInternetSales
+    GROUP BY CustomerKey
+)
+SELECT
+    c.Occupation,
+    CASE
+        WHEN c.YearlyIncome < 50000 THEN 'Low Income'
+        WHEN c.YearlyIncome < 100000 THEN 'Middle Income'
+        ELSE 'High Income'
+    END AS Income_Band,
+    AVG(cs.Customer_Spending) AS Avg_Sales_Per_Customer,
+    COUNT(*) AS Customer_Count
+FROM CustomerSales cs
+JOIN DimCustomer c
+    ON cs.CustomerKey = c.CustomerKey
+GROUP BY
+    c.Occupation,
+    CASE
+        WHEN c.YearlyIncome < 50000 THEN 'Low Income'
+        WHEN c.YearlyIncome < 100000 THEN 'Middle Income'
+        ELSE 'High Income'
+    END
+ORDER BY Avg_Sales_Per_Customer;
+
+WITH CustomerSales AS (
+    SELECT
+        CustomerKey,
+        SUM(SalesAmount) AS Customer_Spending
+    FROM FactInternetSales
+    GROUP BY CustomerKey
+),
+CustomerSegments AS (
+    SELECT
+        cs.CustomerKey,
+        cs.Customer_Spending,
+        c.Occupation,
+        CASE
+            WHEN c.YearlyIncome < 50000 THEN 'Low Income'
+            WHEN c.YearlyIncome < 100000 THEN 'Middle Income'
+            ELSE 'High Income'
+        END AS Income_Band
+    FROM CustomerSales cs
+    JOIN DimCustomer c
+        ON cs.CustomerKey = c.CustomerKey
+),
+Benchmark AS (
+    SELECT AVG(Customer_Spending) AS Avg_Spending
+    FROM CustomerSales
+)
+SELECT
+    Occupation,
+    Income_Band,
+    COUNT(*) AS Customer_Count,
+    COUNT(*) * 100.0 / (SELECT COUNT(*) FROM CustomerSegments) AS Customer_Percentage,
+    AVG(Customer_Spending) AS Avg_Sales_Per_Customer
+FROM CustomerSegments
+CROSS JOIN Benchmark
+WHERE Customer_Spending < Benchmark.Avg_Spending
+GROUP BY Occupation, Income_Band
+ORDER BY Customer_Count DESC;
+
+WITH CustomerSales AS (
+    SELECT
+        CustomerKey,
+        SUM(SalesAmount) AS Customer_Spending
+    FROM FactInternetSales
+    GROUP BY CustomerKey
+),
+AgeGroups AS (
+    SELECT
+        cs.CustomerKey,
+        cs.Customer_Spending,
+        TIMESTAMPDIFF(YEAR, c.BirthDate, '2014-01-28') AS Age,
+        FLOOR(TIMESTAMPDIFF(YEAR, c.BirthDate, '2014-01-28') / 5) * 5 AS Age_Group_Start
+    FROM CustomerSales cs
+    JOIN DimCustomer c
+        ON cs.CustomerKey = c.CustomerKey
+)
+SELECT
+    CONCAT(Age_Group_Start, '-', Age_Group_Start + 4) AS Age_Group,
+    COUNT(*) AS Customer_Count,
+    SUM(Customer_Spending) AS Total_Sales,
+    AVG(Customer_Spending) AS Avg_Sales_Per_Customer
+FROM AgeGroups
+WHERE Age >= 18 AND Age < 50
+GROUP BY Age_Group_Start
+ORDER BY Total_Sales DESC;
+
+WITH CustomerSales AS (
+    SELECT
+        CustomerKey,
+        SUM(SalesAmount) AS Customer_Spending
+    FROM FactInternetSales
+    GROUP BY CustomerKey
+),
+AgeGroups AS (
+    SELECT
+        cs.CustomerKey,
+        cs.Customer_Spending,
+        TIMESTAMPDIFF(YEAR, c.BirthDate, '2014-01-28') AS Age,
+        FLOOR(TIMESTAMPDIFF(YEAR, c.BirthDate, '2014-01-28') / 5) * 5 AS Age_Group_Start
+    FROM CustomerSales cs
+    JOIN DimCustomer c
+        ON cs.CustomerKey = c.CustomerKey
+),
+Under50 AS (
+    SELECT *
+    FROM AgeGroups
+    WHERE Age >= 18 AND Age < 50
+),
+TotalUnder50 AS (
+    SELECT SUM(Customer_Spending) AS Total_Sales
+    FROM Under50
+)
+SELECT
+    CONCAT(Age_Group_Start, '-', Age_Group_Start + 4) AS Age_Group,
+    SUM(Customer_Spending) AS Total_Sales,
+    SUM(Customer_Spending) * 100.0 / (SELECT Total_Sales FROM TotalUnder50) AS Sales_Share_Percentage
+FROM Under50
+GROUP BY Age_Group_Start
+ORDER BY Total_Sales DESC;
