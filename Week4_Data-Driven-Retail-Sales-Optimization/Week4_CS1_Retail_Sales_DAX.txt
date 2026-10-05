@@ -1,0 +1,3 @@
+Total Sales =
+SUM(FactInternetSales[SalesAmount])
+    + SUM(FactResellerSales[SalesAmount])
