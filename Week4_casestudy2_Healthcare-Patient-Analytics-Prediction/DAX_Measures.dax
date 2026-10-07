@@ -1,0 +1,46 @@
+Admission Date =
+DATE(
+    YEAR(Admissions[admission_date]),
+    MONTH(Admissions[admission_date]),
+    DAY(Admissions[admission_date])
+)
+
+Total Admissions =
+DISTINCTCOUNT(Admissions[admission_id])
+
+Total Patients =
+DISTINCTCOUNT(Patients[patient_id])
+
+Discharges =
+CALCULATE(
+    DISTINCTCOUNT(Admissions[admission_id]),
+    NOT ISBLANK(Admissions[discharge_date])
+)
+
+Average Risk Score =
+AVERAGE(Readmission_Risk[risk_score])
+
+High-Risk Patients =
+CALCULATE(
+    DISTINCTCOUNT(Readmission_Risk[admission_id]),
+    Readmission_Risk[risk_level] = "High"
+)
+
+Abnormal Vital Records =
+CALCULATE(
+    COUNTROWS(Vitals),
+    FILTER(
+        Vitals,
+        Vitals[heart_rate] < 60 ||
+        Vitals[heart_rate] > 100 ||
+        Vitals[oxygen_level] < 95 ||
+        Vitals[temperature] < 97 ||
+        Vitals[temperature] > 99
+    )
+)
+
+30-Day Follow-Up Coverage =
+DIVIDE(
+    DISTINCTCOUNT(Readmission_Risk[admission_id]),
+    DISTINCTCOUNT(Admissions[admission_id])
+)
